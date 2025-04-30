@@ -1,0 +1,9 @@
+{
+  "files": [
+    "eng.traineddata",
+    "digits.traineddata",
+    "OCRB.traineddata",
+    "7seg.traineddata",
+    "letsgodigital.traineddata"
+  ]
+}
