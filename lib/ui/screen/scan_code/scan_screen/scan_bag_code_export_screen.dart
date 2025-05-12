@@ -990,7 +990,6 @@ class _ScanBagCodeExportScreenWithControllerState
                               errorBuilder: (
                                 BuildContext context,
                                 MobileScannerException error,
-                                Widget? child,
                               ) {
                                 return ScannerErrorWidget(error: error);
                               },

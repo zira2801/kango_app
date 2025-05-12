@@ -210,11 +210,7 @@ class _BarcodeScannerWithControllerState
         children: [
           MobileScanner(
             controller: controller,
-            errorBuilder: (
-              BuildContext context,
-              MobileScannerException error,
-              Widget? child,
-            ) {
+            errorBuilder: (BuildContext context, MobileScannerException error) {
               return ScannerErrorWidget(error: error);
             },
             fit: BoxFit.fill,

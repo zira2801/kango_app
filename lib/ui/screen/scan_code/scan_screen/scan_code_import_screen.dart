@@ -2099,7 +2099,6 @@ class _ScanCodeImportScreenWithControllerState
                       errorBuilder: (
                         BuildContext context,
                         MobileScannerException error,
-                        Widget? child,
                       ) {
                         return ScannerErrorWidget(error: error);
                       },

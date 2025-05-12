@@ -418,7 +418,6 @@ class _ScanCodeInTransitScreenWithControllerState
                       errorBuilder: (
                         BuildContext context,
                         MobileScannerException error,
-                        Widget? child,
                       ) {
                         return ScannerErrorWidget(error: error);
                       },

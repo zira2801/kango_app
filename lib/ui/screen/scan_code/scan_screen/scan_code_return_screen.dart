@@ -162,7 +162,6 @@ class _ScanCodeReturnScreenWithControllerState
                     errorBuilder: (
                       BuildContext context,
                       MobileScannerException error,
-                      Widget? child,
                     ) {
                       return ScannerErrorWidget(error: error);
                     },
