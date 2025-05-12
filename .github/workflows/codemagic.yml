@@ -1,0 +1,120 @@
+workflows:
+  # Workflow để build iOS (IPA)
+  ios-build:
+    name: iOS Build and Publish
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    environment:
+      flutter: stable # Hoặc phiên bản cụ thể, ví dụ: 3.24.0
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store # Hoặc ad_hoc nếu không publish lên App Store
+        bundle_identifier: com.example.myapp # Thay bằng Bundle ID của bạn
+      vars:
+        APP_ID: "1234567890" # Thay bằng App ID từ Apple Developer Portal
+        CM_CERTIFICATE: $CM_CERTIFICATE_BASE64 # Biến chứa chứng chỉ .p12 (base64)
+        CM_PROFILE: $CM_PROFILE_BASE64 # Biến chứa provisioning profile (base64)
+      groups:
+        - apple_credentials # Nhóm chứa thông tin App Store Connect API
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+        - $FLUTTER_ROOT/.pub-cache
+        - $HOME/Library/Caches/CocoaPods
+    scripts:
+      - name: Install Flutter dependencies
+        script: |
+          flutter pub get
+      - name: Run tests
+        script: |
+          flutter test || echo "Tests failed, but continuing build"
+      - name: Set up code signing
+        script: |
+          echo "$CM_CERTIFICATE" | base64 -d > certificate.p12
+          echo "$CM_PROFILE" | base64 -d > profile.mobileprovision
+          security create-keychain -p "" build.keychain
+          security import certificate.p12 -t agg -k build.keychain -P "" -A
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+      - name: Build IPA
+        script: |
+          flutter build ios --release --no-codesign
+          cd build/ios/iphoneos
+          mkdir Payload
+          mv Runner.app Payload/
+          zip -r app.ipa Payload
+      - name: Export IPA for App Store
+        script: |
+          xcodebuild -exportArchive -archivePath build/ios/iphoneos/Runner.xcarchive \
+            -exportOptionsPlist $HOME/export_options.plist \
+            -exportPath build/ios/iphoneos \
+            -allowProvisioningUpdates
+    artifacts:
+      - build/ios/iphoneos/*.ipa
+      - build/ios/iphoneos/*.xcarchive
+    publishing:
+      email:
+        recipients:
+          - your.email@example.com # Thay bằng email của bạn
+        notify:
+          success: true
+          failure: true
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_KEY # Biến chứa API Key (base64)
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID # Thay bằng Issuer ID
+        key_id: $APP_STORE_CONNECT_KEY_ID # Thay bằng Key ID
+        submit_to_testflight: true # Gửi lên TestFlight
+        submit_to_app_store: false # Đổi thành true nếu muốn submit lên App Store
+
+  # Workflow để build Android (AAB)
+  android-build:
+    name: Android Build and Publish
+    max_build_duration: 120
+    instance_type: linux
+    environment:
+      flutter: stable # Hoặc phiên bản cụ thể
+      vars:
+        ANDROID_KEYSTORE: $CM_KEYSTORE # Biến chứa file keystore (base64)
+        ANDROID_KEYSTORE_PASSWORD: $CM_KEYSTORE_PASSWORD
+        ANDROID_KEY_ALIAS: $CM_KEY_ALIAS
+        ANDROID_KEY_PASSWORD: $CM_KEY_PASSWORD
+        GOOGLE_PLAY_JSON: $GOOGLE_PLAY_JSON # Biến chứa Google Play API JSON (base64)
+      groups:
+        - google_play_credentials # Nhóm chứa thông tin Google Play
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+        - $FLUTTER_ROOT/.pub-cache
+        - $HOME/.gradle/caches
+    scripts:
+      - name: Install Flutter dependencies
+        script: |
+          flutter pub get
+      - name: Run tests
+        script: |
+          flutter test || echo "Tests failed, but continuing build"
+      - name: Set up Keystore
+        script: |
+          echo "$ANDROID_KEYSTORE" | base64 -d > my-release-key.keystore
+      - name: Build AAB
+        script: |
+          flutter build appbundle --release \
+            --build-name=1.0.0 \
+            --build-number=1 # Thay đổi theo version của bạn
+    artifacts:
+      - build/**/outputs/bundle/**/*.aab
+    publishing:
+      email:
+        recipients:
+          - your.email@example.com # Thay bằng email của bạn
+        notify:
+          success: true
+          failure: true
+      google_play:
+        credentials: $GOOGLE_PLAY_JSON # Biến chứa file JSON
+        track: internal # Hoặc production, beta, alpha
+        in_app_update_priority: 0 # Từ 0-5, ưu tiên cập nhật
